@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BESS Matrix Modeling Solution</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- MathJax for LaTeX rendering -->
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&display=swap');
+        body { font-family: 'Noto+Sans+JP', sans-serif; background-color: #f8fafc; color: #1e293b; }
+        .math-card { background: #ffffff; border-left: 5px solid #0d9488; transition: transform 0.2s; }
+        .math-card:hover { transform: translateY(-2px); }
+        .matrix-node { width: 32px; height: 32px; border-radius: 6px; transition: all 0.3s; }
+        .node-active { background-color: #0d9488; box-shadow: 0 0 12px rgba(13, 148, 136, 0.4); }
+        .node-broken { background-color: #ef4444; opacity: 0.2; }
+        input[type="range"] { accent-color: #0d9488; }
+        .glass-panel { background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(8px); border: 1px solid rgba(226, 232, 240, 0.8); }
+    </style>
+</head>
+<body class="pb-20">
+
+    <!-- Top Navigation / Progress Bar -->
+    <div class="sticky top-0 z-50 w-full bg-slate-900/95 backdrop-blur-sm text-white py-4 shadow-xl border-b border-teal-500/30">
+        <div class="max-w-6xl mx-auto px-6 flex justify-between items-center">
+            <h1 class="text-xl font-bold tracking-tight flex items-center">
+                <i class="fa-solid fa-microchip mr-3 text-teal-400"></i>
+                BESS Matrix Modeling Solution
+            </h1>
+            <div class="flex gap-6 text-[10px] font-bold uppercase tracking-widest text-slate-400">
+                <a href="#simulator" class="hover:text-teal-400 transition-colors">Simulator</a>
+                <a href="#theory" class="hover:text-teal-400 transition-colors">Theory & Math</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="max-w-6xl mx-auto mt-8 px-4 space-y-12">
+        
+        <!-- SECTION 1: SIMULATOR -->
+        <section id="simulator" class="scroll-mt-24">
+            <div class="flex items-center gap-3 mb-6">
+                <span class="bg-teal-600 text-white px-3 py-1 rounded-md text-xs font-bold uppercase">Phase 01</span>
+                <h2 class="text-2xl font-extrabold text-slate-800">インタラクティブ・シミュレーター</h2>
+            </div>
+            
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                <!-- Controls Column -->
+                <div class="lg:col-span-4 space-y-6">
+                    <!-- Weight Sliders -->
+                    <div class="glass-panel p-6 rounded-2xl shadow-sm">
+                        <h3 class="font-bold text-slate-800 mb-4 flex justify-between items-center">
+                            <span>構成比率 \( w_i \)</span>
+                            <span id="sum-w" class="text-[10px] px-2 py-1 rounded font-bold bg-teal-100 text-teal-700">100%</span>
+                        </h3>
+                        <div id="sliders-container" class="space-y-5">
+                            <!-- JS Renders sliders -->
+                        </div>
+                    </div>
+
+                    <!-- Integrity Slider -->
+                    <div class="glass-panel p-6 rounded-2xl shadow-sm">
+                        <h3 class="font-bold text-slate-800 mb-4">健全性係数 \( \gamma \) (トポロジー解析)</h3>
+                        <input type="range" id="integrity-slider" min="0" max="100" value="100" class="w-full h-2 rounded-lg appearance-none cursor-pointer bg-slate-200">
+                        <div class="flex justify-between text-[10px] font-bold text-slate-400 mt-2">
+                            <span>物理断線リスク (0.0)</span>
+                            <span id="integrity-val" class="text-teal-600 text-sm font-mono font-bold">1.00</span>
+                            <span>理想的接続 (1.0)</span>
+                        </div>
+                        <div class="grid grid-cols-3 gap-3 mt-6 justify-items-center bg-slate-50 p-4 rounded-xl">
+                            <div id="node-0" class="matrix-node node-active"></div>
+                            <div id="node-1" class="matrix-node node-active"></div>
+                            <div id="node-2" class="matrix-node node-active"></div>
+                            <div id="node-3" class="matrix-node node-active"></div>
+                            <div id="node-4" class="matrix-node node-active"></div>
+                            <div id="node-5" class="matrix-node node-active"></div>
+                            <div id="node-6" class="matrix-node node-active"></div>
+                            <div id="node-7" class="matrix-node node-active"></div>
+                            <div id="node-8" class="matrix-node node-active"></div>
+                        </div>
+                    </div>
+
+                    <!-- KPI Dashboard -->
+                    <div class="bg-slate-900 text-white p-6 rounded-2xl shadow-2xl border border-teal-500/20">
+                        <div class="text-[10px] uppercase tracking-widest text-slate-500 mb-4 font-bold border-b border-slate-800 pb-2">Calculated KPI</div>
+                        <div class="space-y-4">
+                            <div class="flex justify-between items-end">
+                                <span class="text-xs text-slate-400">合成効率 \( \eta_{sys} \)</span>
+                                <span id="res-eff" class="font-mono text-teal-400 font-bold text-2xl tracking-tighter">--%</span>
+                            </div>
+                            <div class="flex justify-between items-end">
+                                <span class="text-xs text-slate-400">実効出力 \( P_{net} \)</span>
+                                <span id="res-power" class="font-mono text-teal-400 font-bold text-2xl tracking-tighter">-- kW</span>
+                            </div>
+                            <div class="pt-4 border-t border-slate-800">
+                                <div id="res-status" class="text-center py-2 rounded text-[10px] font-bold tracking-widest bg-slate-800">---</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Visualization Column -->
+                <div class="lg:col-span-8 space-y-6">
+                    <div class="bg-white p-8 rounded-3xl shadow-sm border border-slate-200">
+                        <div class="flex justify-between items-center mb-8">
+                            <h3 class="font-bold text-slate-800 text-lg">JEPX市場連動 24h SoC シミュレーション</h3>
+                            <div class="flex gap-4">
+                                <div class="flex items-center text-[10px] font-bold text-slate-500">
+                                    <span class="w-3 h-3 rounded-full bg-teal-500 mr-2 shadow-sm"></span> SoC (%)
+                                </div>
+                                <div class="flex items-center text-[10px] font-bold text-slate-500">
+                                    <span class="w-3 h-3 rounded-full bg-slate-300 mr-2"></span> Market (円)
+                                </div>
+                            </div>
+                        </div>
+                        <div class="h-96 w-full">
+                            <canvas id="mainChart"></canvas>
+                        </div>
+                    </div>
+
+                    <div class="bg-teal-50 p-6 rounded-2xl border border-teal-100 flex gap-4 items-start">
+                        <div class="bg-teal-600 text-white p-3 rounded-xl shadow-lg">
+                            <i class="fa-solid fa-lightbulb"></i>
+                        </div>
+                        <div>
+                            <h4 class="font-bold text-teal-900 text-sm mb-1">制御・整理性評価インサイト</h4>
+                            <div id="insight-text" class="text-xs text-teal-800 leading-relaxed space-y-2">
+                                スライダーを動かしてシステム構成を動的に変更してください。
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION 2: THEORY & MATH -->
+        <section id="theory" class="scroll-mt-24 pt-12 border-t border-slate-200">
+            <div class="flex items-center gap-3 mb-8">
+                <span class="bg-slate-800 text-white px-3 py-1 rounded-md text-xs font-bold uppercase">Phase 02</span>
+                <h2 class="text-2xl font-extrabold text-slate-800">背後の数理的フレームワーク</h2>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8 items-stretch">
+                <!-- Theory Cards -->
+                <div class="space-y-6">
+                    <div class="math-card p-8 rounded-r-2xl shadow-sm">
+                        <div class="flex items-center gap-3 mb-4">
+                            <span class="bg-teal-100 text-teal-700 w-8 h-8 rounded-full flex items-center justify-center font-bold">1</span>
+                            <h3 class="font-bold text-slate-800">ハイブリッド構成の線形重畳原理</h3>
+                        </div>
+                        <p class="text-slate-600 text-sm leading-relaxed mb-6">
+                            個別の物理接続を抽象化し、複数の化学特性（LFP, Redox等）を単一の等価性能ベクトル \( \mathbf{S}_{sys} \) として統合します。
+                        </p>
+                        <div class="bg-slate-50 p-6 rounded-xl border border-slate-100 text-center shadow-inner">
+                            <div class="text-xl italic text-slate-800">
+                                $$\mathbf{S}_{sys} = \frac{\sum_{i=1}^{n} w_i \mathbf{V}_i}{\sum_{i=1}^{n} w_i}$$
+                            </div>
+                            <div class="text-[10px] text-slate-400 mt-4 font-bold uppercase">Weighted Sum of Feature Vectors</div>
+                        </div>
+                    </div>
+
+                    <div class="math-card p-8 rounded-r-2xl shadow-sm border-l-orange-500">
+                        <div class="flex items-center gap-3 mb-4">
+                            <span class="bg-orange-100 text-orange-700 w-8 h-8 rounded-full flex items-center justify-center font-bold">2</span>
+                            <h3 class="font-bold text-slate-800">トポロジー健全性ペナルティ関数</h3>
+                        </div>
+                        <p class="text-slate-600 text-sm leading-relaxed mb-6">
+                            物理的な配線の煩雑さや断線リスクを、スカラー係数 \( \gamma \) として定義。理想状態からの減衰をシステム全体の損失として定量化します。
+                        </p>
+                        <div class="bg-slate-50 p-6 rounded-xl border border-slate-100 text-center shadow-inner">
+                            <div class="text-xl italic text-slate-800">
+                                $$P_{net} = \gamma \cdot \left( P_{base} \cdot \bar{\phi} \right)$$
+                            </div>
+                            <div class="text-[10px] text-slate-400 mt-4 font-bold uppercase">Integrity-Aware Power Correction</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Strategic Summary -->
+                <div class="bg-white p-10 rounded-3xl shadow-sm border border-slate-200 flex flex-col">
+                    <h3 class="font-bold text-slate-800 mb-6 text-center text-lg tracking-wide border-b pb-4 uppercase">戦略的評価マトリックス</h3>
+                    <div class="flex-grow space-y-8 py-4">
+                        <div class="flex gap-6 items-start">
+                            <div class="bg-teal-600 text-white p-3 rounded-xl shadow-md"><i class="fa-solid fa-gauge-high"></i></div>
+                            <div>
+                                <h4 class="font-bold text-slate-800 text-sm">高速スクリーニング</h4>
+                                <p class="text-xs text-slate-500 mt-1">詳細な物理モデル以前に、構成比率による成立性を数学的に即時判定します。</p>
+                            </div>
+                        </div>
+                        <div class="flex gap-6 items-start">
+                            <div class="bg-blue-600 text-white p-3 rounded-xl shadow-md"><i class="fa-solid fa-link-slash"></i></div>
+                            <div>
+                                <h4 class="font-bold text-slate-800 text-sm">物理的レジリエンス評価</h4>
+                                <p class="text-xs text-slate-500 mt-1">断線等の不測事態が、市場取引（アービトラージ）の収益性に与える影響を可視化します。</p>
+                            </div>
+                        </div>
+                        <div class="flex gap-6 items-start">
+                            <div class="bg-purple-600 text-white p-3 rounded-xl shadow-md"><i class="fa-solid fa-chart-pie"></i></div>
+                            <div>
+                                <h4 class="font-bold text-slate-800 text-sm">LCOS（蓄電原価）の最適化</h4>
+                                <p class="text-xs text-slate-500 mt-1">寿命・効率・コストのベクトル演算により、投資回収効率の最大化ポイントを特定します。</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mt-auto bg-slate-900 text-teal-400 p-6 rounded-2xl text-[10px] leading-relaxed font-mono">
+                        // Conclusion: <br>
+                        本手法は、コンポーネントの「物理接続」を「マトリックス演算」へ昇華させることで、検討の抽象度を高め、広範なシナリオの並列評価を可能にします。
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <script>
+        // Data & Theory Mapping
+        const BATTERY_LIBRARY = [
+            { name: "LFP (Lithium)", eff: 0.95, pf: 1.0, life: 10 },
+            { name: "Redox Flow", eff: 0.75, pf: 0.6, life: 20 },
+            { name: "NAS Battery", eff: 0.85, pf: 0.8, life: 15 }
+        ];
+
+        let weights = [100, 0, 0];
+        let integrity = 1.0;
+        let chart = null;
+
+        function init() {
+            const container = document.getElementById('sliders-container');
+            container.innerHTML = BATTERY_LIBRARY.map((b, i) => `
+                <div class="space-y-1">
+                    <div class="flex justify-between text-[10px] font-bold text-slate-500 uppercase">
+                        <span>${b.name}</span>
+                        <span id="w-label-${i}" class="text-teal-600">${weights[i]}%</span>
+                    </div>
+                    <input type="range" oninput="updateWeight(${i}, this.value)" min="0" max="100" value="${weights[i]}" class="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer">
+                </div>
+            `).join('');
+
+            document.getElementById('integrity-slider').oninput = (e) => {
+                integrity = e.target.value / 100;
+                document.getElementById('integrity-val').innerText = integrity.toFixed(2);
+                update();
+            };
+
+            update();
+        }
+
+        function updateWeight(idx, val) {
+            weights[idx] = parseInt(val);
+            document.getElementById(`w-label-${idx}`).innerText = `${val}%`;
+            
+            let sum = weights.reduce((a, b) => a + b, 0);
+            const sumEl = document.getElementById('sum-w');
+            sumEl.innerText = `${sum}%`;
+            sumEl.className = `text-[10px] px-2 py-1 rounded font-bold ${sum === 100 ? 'bg-teal-100 text-teal-700' : 'bg-red-100 text-red-700'}`;
+            
+            update();
+        }
+
+        function update() {
+            // Topology nodes
+            for(let i=0; i<9; i++) {
+                const node = document.getElementById(`node-${i}`);
+                const threshold = (i + 1) / 9;
+                node.className = `matrix-node ${integrity >= threshold ? 'node-active' : 'node-broken'}`;
+            }
+
+            // Calculation Logic (Weighted Overlap Theory)
+            let sumW = weights.reduce((a, b) => a + b, 0) || 1;
+            let avgEff = weights.reduce((acc, w, i) => acc + (w * BATTERY_LIBRARY[i].eff), 0) / sumW;
+            let avgPF = weights.reduce((acc, w, i) => acc + (w * BATTERY_LIBRARY[i].pf), 0) / sumW;
+            
+            // Apply integrity as penalty
+            let netEff = avgEff * (0.8 + 0.2 * integrity); // Efficiency penalty factor
+            let netPower = 1000 * avgPF * integrity;
+
+            document.getElementById('res-eff').innerText = `${(netEff * 100).toFixed(1)}%`;
+            document.getElementById('res-power').innerText = `${netPower.toFixed(0)} kW`;
+
+            const status = document.getElementById('res-status');
+            if (integrity < 0.6) { status.innerText = "DANGER / CRITICAL LOSS"; status.className = "text-center py-2 rounded text-[10px] font-bold tracking-widest bg-red-900 text-red-100"; }
+            else if (integrity < 0.9) { status.innerText = "WARNING / PERFORMANCE DROP"; status.className = "text-center py-2 rounded text-[10px] font-bold tracking-widest bg-amber-900 text-amber-100"; }
+            else { status.innerText = "STABLE / OPTIMAL CONNECTION"; status.className = "text-center py-2 rounded text-[10px] font-bold tracking-widest bg-teal-900 text-teal-100"; }
+
+            // Insight logic
+            let insight = `<p>• <b>合成インピーダンス特性:</b> 現在の混合構成比率に基づき、システム全体の動特性行列 \( \mathbf{S}_{sys} \) は LFPの応答性と定周期運用のバランスが最適化されています。</p>`;
+            if (integrity < 0.8) {
+                insight += `<p class="mt-2 font-bold text-red-700">! 物理的断線アラート: 健全性係数 \( \gamma = ${integrity.toFixed(2)} \) は、配線の煩雑さによる通信ノイズおよび物理的な電力ロスが深刻であることを示しています。</p>`;
+            } else {
+                insight += `<p class="mt-2 text-teal-700">• <b>システム安定性評価:</b> 物理トポロジーの健全性が維持されており、理論予測値通りの収益（アービトラージ）が期待できます。</p>`;
+            }
+            document.getElementById('insight-text').innerHTML = insight;
+
+            runSimulation(netEff, integrity);
+        }
+
+        function runSimulation(eff, integ) {
+            const hours = Array.from({length: 24}, (_, i) => `${i}:00`);
+            const market = hours.map((_, i) => {
+                let p = 12;
+                if (i >= 7 && i <= 10) p = 30; // AM Peak
+                if (i >= 17 && i <= 21) p = 50; // PM Peak
+                if (i >= 11 && i <= 15) p = 6;  // PV Overflow
+                return p + Math.random() * 4;
+            });
+
+            let soc = 50;
+            const socData = [];
+            market.forEach(p => {
+                // Algorithm: Charge when cheap, discharge when expensive
+                if (p < 15) soc += (18 * eff * integ);
+                else if (p > 38) soc -= (22 / eff * integ);
+                soc = Math.max(5, Math.min(95, soc));
+                socData.push(soc.toFixed(1));
+            });
+
+            if(chart) chart.destroy();
+            const ctx = document.getElementById('mainChart').getContext('2d');
+            chart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: hours,
+                    datasets: [
+                        { label: 'SoC (%)', data: socData, borderColor: '#0d9488', backgroundColor: 'rgba(13,148,136,0.1)', fill: true, tension: 0.4, yAxisID: 'y' },
+                        { label: 'Market Price', data: market, borderColor: '#cbd5e1', borderDash: [5,5], tension: 0.1, yAxisID: 'y1' }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: { min: 0, max: 100, ticks: { font: { size: 10 } } },
+                        y1: { position: 'right', min: 0, max: 70, grid: { drawOnChartArea: false }, ticks: { font: { size: 10 } } }
+                    },
+                    plugins: { legend: { display: false } }
+                }
+            });
+        }
+
+        window.onload = init;
+    </script>
+</body>
+</html>
