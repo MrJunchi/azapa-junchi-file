@@ -51,12 +51,36 @@
                 <div class="lg:col-span-4 space-y-6">
                     <!-- Weight Sliders -->
                     <div class="glass-panel p-6 rounded-2xl shadow-sm">
-                        <h3 class="font-bold text-slate-800 mb-4 flex justify-between items-center">
-                            <span>構成比率 \( w_i \)</span>
+                        <h3 class="font-bold text-slate-800 mb-4 flex justify-between items-center border-b pb-2">
+                            <span>構成比率 \( w_i \) (優先順: LFP > Redox > NAS)</span>
                             <span id="sum-w" class="text-[10px] px-2 py-1 rounded font-bold bg-teal-100 text-teal-700">100%</span>
                         </h3>
-                        <div id="sliders-container" class="space-y-5">
+                        <div id="sliders-container" class="space-y-4">
                             <!-- JS Renders sliders -->
+                        </div>
+                    </div>
+
+                    <!-- Supply & Demand Sliders -->
+                    <div class="glass-panel p-6 rounded-2xl shadow-sm border-l-4 border-blue-400">
+                        <h3 class="font-bold text-slate-800 mb-4 flex items-center">
+                            <i class="fa-solid fa-cloud-sun mr-2 text-blue-500"></i>
+                            需要と発電の環境設定
+                        </h3>
+                        <div class="space-y-5">
+                            <div class="space-y-1">
+                                <div class="flex justify-between text-[10px] font-bold text-slate-500 uppercase">
+                                    <span>最大消費電力 (Demand)</span>
+                                    <span id="label-cons" class="text-blue-600">40kW</span>
+                                </div>
+                                <input type="range" id="slider-cons" min="0" max="100" value="40" class="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer">
+                            </div>
+                            <div class="space-y-1">
+                                <div class="flex justify-between text-[10px] font-bold text-slate-500 uppercase">
+                                    <span>最大発電電力 (Solar)</span>
+                                    <span id="label-gen" class="text-orange-600">60kW</span>
+                                </div>
+                                <input type="range" id="slider-gen" min="0" max="100" value="60" class="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer">
+                            </div>
                         </div>
                     </div>
 
@@ -105,13 +129,19 @@
                 <div class="lg:col-span-8 space-y-6">
                     <div class="bg-white p-8 rounded-3xl shadow-sm border border-slate-200">
                         <div class="flex justify-between items-center mb-8">
-                            <h3 class="font-bold text-slate-800 text-lg">JEPX市場連動 24h SoC シミュレーション</h3>
-                            <div class="flex gap-4">
-                                <div class="flex items-center text-[10px] font-bold text-slate-500">
-                                    <span class="w-3 h-3 rounded-full bg-teal-500 mr-2 shadow-sm"></span> SoC (%)
+                            <h3 class="font-bold text-slate-800 text-lg">需給連動 24h エネルギー・シミュレーション</h3>
+                            <div class="flex flex-wrap gap-3">
+                                <div class="flex items-center text-[9px] font-bold text-slate-500 uppercase">
+                                    <span class="w-2.5 h-2.5 rounded-full bg-teal-500 mr-1.5 shadow-sm"></span> SoC
                                 </div>
-                                <div class="flex items-center text-[10px] font-bold text-slate-500">
-                                    <span class="w-3 h-3 rounded-full bg-slate-300 mr-2"></span> Market (円)
+                                <div class="flex items-center text-[9px] font-bold text-slate-500 uppercase">
+                                    <span class="w-2.5 h-2.5 rounded-full bg-orange-400 mr-1.5 shadow-sm"></span> Solar
+                                </div>
+                                <div class="flex items-center text-[9px] font-bold text-slate-500 uppercase">
+                                    <span class="w-2.5 h-2.5 rounded-full bg-blue-400 mr-1.5 shadow-sm"></span> Demand
+                                </div>
+                                <div class="flex items-center text-[9px] font-bold text-slate-500 uppercase">
+                                    <span class="w-2.5 h-2.5 rounded-full bg-slate-700 mr-1.5 shadow-sm"></span> Market
                                 </div>
                             </div>
                         </div>
@@ -148,32 +178,32 @@
                     <div class="math-card p-8 rounded-r-2xl shadow-sm">
                         <div class="flex items-center gap-3 mb-4">
                             <span class="bg-teal-100 text-teal-700 w-8 h-8 rounded-full flex items-center justify-center font-bold">1</span>
-                            <h3 class="font-bold text-slate-800">ハイブリッド構成の線形重畳原理</h3>
+                            <h3 class="font-bold text-slate-800">エネルギー需給バランス方程式</h3>
                         </div>
                         <p class="text-slate-600 text-sm leading-relaxed mb-6">
-                            個別の物理接続を抽象化し、複数の化学特性（LFP, Redox等）を単一の等価性能ベクトル \( \mathbf{S}_{sys} \) として統合します。
+                            システム全体の電力バランス \( P_{net} \) は、外部環境（発電・需要）とバッテリー入出力 \( P_{bat} \) の総和で記述されます。
                         </p>
                         <div class="bg-slate-50 p-6 rounded-xl border border-slate-100 text-center shadow-inner">
-                            <div class="text-xl italic text-slate-800">
-                                $$\mathbf{S}_{sys} = \frac{\sum_{i=1}^{n} w_i \mathbf{V}_i}{\sum_{i=1}^{n} w_i}$$
+                            <div class="text-lg italic text-slate-800">
+                                $$P_{grid}(t) = P_{load}(t) - P_{pv}(t) + P_{bat}(t)$$
                             </div>
-                            <div class="text-[10px] text-slate-400 mt-4 font-bold uppercase">Weighted Sum of Feature Vectors</div>
+                            <p class="text-[10px] text-slate-400 mt-4 uppercase">\( P_{pv} > P_{load} \) の時、余剰分を優先的に充電に使用</p>
                         </div>
                     </div>
 
                     <div class="math-card p-8 rounded-r-2xl shadow-sm border-l-orange-500">
                         <div class="flex items-center gap-3 mb-4">
                             <span class="bg-orange-100 text-orange-700 w-8 h-8 rounded-full flex items-center justify-center font-bold">2</span>
-                            <h3 class="font-bold text-slate-800">トポロジー健全性ペナルティ関数</h3>
+                            <h3 class="font-bold text-slate-800">SoCの状態遷移モデル</h3>
                         </div>
                         <p class="text-slate-600 text-sm leading-relaxed mb-6">
-                            物理的な配線の煩雑さや断線リスクを、スカラー係数 \( \gamma \) として定義。理想状態からの減衰をシステム全体の損失として定量化します。
+                            バッテリーの充電状態 SoC は、現在の電力比率とトポロジー健全性係数 \( \gamma \) を含む非線形な微分方程式を離散化した形で近似されます。
                         </p>
                         <div class="bg-slate-50 p-6 rounded-xl border border-slate-100 text-center shadow-inner">
-                            <div class="text-xl italic text-slate-800">
-                                $$P_{net} = \gamma \cdot \left( P_{base} \cdot \bar{\phi} \right)$$
+                            <div class="text-lg italic text-slate-800">
+                                $$SoC_{t+1} = SoC_t + \int \frac{\eta_{sys} \cdot \gamma \cdot P_{bat}(t)}{C_{total}} dt$$
                             </div>
-                            <div class="text-[10px] text-slate-400 mt-4 font-bold uppercase">Integrity-Aware Power Correction</div>
+                            <div class="text-[10px] text-slate-400 mt-4 font-bold uppercase tracking-tighter">Integrity-Aware State Transition</div>
                         </div>
                     </div>
                 </div>
@@ -185,8 +215,8 @@
                         <div class="flex gap-6 items-start">
                             <div class="bg-teal-600 text-white p-3 rounded-xl shadow-md"><i class="fa-solid fa-gauge-high"></i></div>
                             <div>
-                                <h4 class="font-bold text-slate-800 text-sm">高速スクリーニング</h4>
-                                <p class="text-xs text-slate-500 mt-1">詳細な物理モデル以前に、構成比率による成立性を数学的に即時判定します。</p>
+                                <h4 class="font-bold text-slate-800 text-sm">需要追従シミュレーション</h4>
+                                <p class="text-xs text-slate-500 mt-1">実データに近い負荷プロファイルを適用し、ピークカット効果を定量的に評価します。</p>
                             </div>
                         </div>
                         <div class="flex gap-6 items-start">
@@ -199,14 +229,14 @@
                         <div class="flex gap-6 items-start">
                             <div class="bg-purple-600 text-white p-3 rounded-xl shadow-md"><i class="fa-solid fa-chart-pie"></i></div>
                             <div>
-                                <h4 class="font-bold text-slate-800 text-sm">LCOS（蓄電原価）の最適化</h4>
-                                <p class="text-xs text-slate-500 mt-1">寿命・効率・コストのベクトル演算により、投資回収効率の最大化ポイントを特定します。</p>
+                                <h4 class="font-bold text-slate-800 text-sm">自家消費率の最適化</h4>
+                                <p class="text-xs text-slate-500 mt-1">太陽光余剰電力をどれだけ有効活用できるか、構成比率による変化を分析します。</p>
                             </div>
                         </div>
                     </div>
                     <div class="mt-auto bg-slate-900 text-teal-400 p-6 rounded-2xl text-[10px] leading-relaxed font-mono">
                         // Conclusion: <br>
-                        本手法は、コンポーネントの「物理接続」を「マトリックス演算」へ昇華させることで、検討の抽象度を高め、広範なシナリオの並列評価を可能にします。
+                        本モデルは、環境パラメータ（PV・Load）を動的変数として組み込むことで、市場価格のみに依存しない「実運用に即した最適化」を支援します。
                     </div>
                 </div>
             </div>
@@ -223,9 +253,36 @@
 
         let weights = [100, 0, 0];
         let integrity = 1.0;
+        let peakCons = 40;
+        let peakGen = 60;
         let chart = null;
 
         function init() {
+            renderBatterySliders();
+
+            // Environment sliders
+            document.getElementById('slider-cons').oninput = (e) => {
+                peakCons = parseInt(e.target.value);
+                document.getElementById('label-cons').innerText = `${peakCons}kW`;
+                update();
+            };
+            document.getElementById('slider-gen').oninput = (e) => {
+                peakGen = parseInt(e.target.value);
+                document.getElementById('label-gen').innerText = `${peakGen}kW`;
+                update();
+            };
+
+            // Integrity slider
+            document.getElementById('integrity-slider').oninput = (e) => {
+                integrity = e.target.value / 100;
+                document.getElementById('integrity-val').innerText = integrity.toFixed(2);
+                update();
+            };
+
+            update();
+        }
+
+        function renderBatterySliders() {
             const container = document.getElementById('sliders-container');
             container.innerHTML = BATTERY_LIBRARY.map((b, i) => `
                 <div class="space-y-1">
@@ -236,24 +293,44 @@
                     <input type="range" oninput="updateWeight(${i}, this.value)" min="0" max="100" value="${weights[i]}" class="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer">
                 </div>
             `).join('');
-
-            document.getElementById('integrity-slider').oninput = (e) => {
-                integrity = e.target.value / 100;
-                document.getElementById('integrity-val').innerText = integrity.toFixed(2);
-                update();
-            };
-
-            update();
         }
 
         function updateWeight(idx, val) {
-            weights[idx] = parseInt(val);
-            document.getElementById(`w-label-${idx}`).innerText = `${val}%`;
+            val = parseInt(val);
+            const diff = val - weights[idx];
+            weights[idx] = val;
+
+            // Priority Logic: LFP(0) > Redox(1) > NAS(2)
+            // When a slider is changed, adjust others based on least priority (lowest index gets changed last)
+            let remaining = -diff;
+            let adjustOrder = [];
             
-            let sum = weights.reduce((a, b) => a + b, 0);
+            // Define who to adjust based on who moved
+            if (idx === 0) adjustOrder = [2, 1]; // LFP moved: Adjust NAS, then Redox
+            else if (idx === 1) adjustOrder = [2, 0]; // Redox moved: Adjust NAS, then LFP
+            else if (idx === 2) adjustOrder = [1, 0]; // NAS moved: Adjust Redox, then LFP
+
+            for (let t of adjustOrder) {
+                let currentVal = weights[t];
+                let possibleAdjust = Math.max(-currentVal, Math.min(100 - currentVal, remaining));
+                weights[t] += possibleAdjust;
+                remaining -= possibleAdjust;
+            }
+
+            // In case of any rounding/drift, ensure 100% total (safety net)
+            // but the priority logic above usually handles it.
+            
+            // Re-render slider positions and labels
+            const sliders = document.querySelectorAll('#sliders-container input');
+            weights.forEach((w, i) => {
+                const rounded = Math.round(w);
+                sliders[i].value = rounded;
+                document.getElementById(`w-label-${i}`).innerText = `${rounded}%`;
+            });
+
+            const sum = weights.reduce((a, b) => a + b, 0);
             const sumEl = document.getElementById('sum-w');
-            sumEl.innerText = `${sum}%`;
-            sumEl.className = `text-[10px] px-2 py-1 rounded font-bold ${sum === 100 ? 'bg-teal-100 text-teal-700' : 'bg-red-100 text-red-700'}`;
+            sumEl.innerText = `${Math.round(sum)}%`;
             
             update();
         }
@@ -266,13 +343,12 @@
                 node.className = `matrix-node ${integrity >= threshold ? 'node-active' : 'node-broken'}`;
             }
 
-            // Calculation Logic (Weighted Overlap Theory)
+            // Calculation Logic
             let sumW = weights.reduce((a, b) => a + b, 0) || 1;
             let avgEff = weights.reduce((acc, w, i) => acc + (w * BATTERY_LIBRARY[i].eff), 0) / sumW;
             let avgPF = weights.reduce((acc, w, i) => acc + (w * BATTERY_LIBRARY[i].pf), 0) / sumW;
             
-            // Apply integrity as penalty
-            let netEff = avgEff * (0.8 + 0.2 * integrity); // Efficiency penalty factor
+            let netEff = avgEff * (0.85 + 0.15 * integrity);
             let netPower = 1000 * avgPF * integrity;
 
             document.getElementById('res-eff').innerText = `${(netEff * 100).toFixed(1)}%`;
@@ -284,11 +360,11 @@
             else { status.innerText = "STABLE / OPTIMAL CONNECTION"; status.className = "text-center py-2 rounded text-[10px] font-bold tracking-widest bg-teal-900 text-teal-100"; }
 
             // Insight logic
-            let insight = `<p>• <b>合成インピーダンス特性:</b> 現在の混合構成比率に基づき、システム全体の動特性行列 \( \mathbf{S}_{sys} \) は LFPの応答性と定周期運用のバランスが最適化されています。</p>`;
+            let insight = `<p>• <b>構成バランス:</b> 現在の比率により、\( \mathbf{S}_{sys} \) は LFPの高い効率と下位電池の特性が重畳されています。優先順位に基づき、LFPがベースロードを支える設計です。</p>`;
             if (integrity < 0.8) {
-                insight += `<p class="mt-2 font-bold text-red-700">! 物理的断線アラート: 健全性係数 \( \gamma = ${integrity.toFixed(2)} \) は、配線の煩雑さによる通信ノイズおよび物理的な電力ロスが深刻であることを示しています。</p>`;
+                insight += `<p class="mt-2 font-bold text-red-700">! 物理的断線アラート: 健全性係数 \( \gamma = ${integrity.toFixed(2)} \) は、電力変換のミスマッチにより自家消費率を下げていることを示唆します。</p>`;
             } else {
-                insight += `<p class="mt-2 text-teal-700">• <b>システム安定性評価:</b> 物理トポロジーの健全性が維持されており、理論予測値通りの収益（アービトラージ）が期待できます。</p>`;
+                insight += `<p class="mt-2 text-teal-700">• <b>自家消費効率:</b> 最適なトポロジー接続が維持されており、電力系統への依存を最小限に抑えています。</p>`;
             }
             document.getElementById('insight-text').innerHTML = insight;
 
@@ -297,20 +373,50 @@
 
         function runSimulation(eff, integ) {
             const hours = Array.from({length: 24}, (_, i) => `${i}:00`);
+            
+            // Generate Curves
+            const loadCurve = hours.map((_, h) => {
+                let val = 0.3 + 0.5 * (Math.exp(-0.1 * Math.pow(h - 8, 2)) + Math.exp(-0.1 * Math.pow(h - 20, 2)));
+                return val * peakCons;
+            });
+
+            const genCurve = hours.map((_, h) => {
+                let val = Math.max(0, Math.sin((h - 6) * Math.PI / 12));
+                return val * peakGen;
+            });
+
             const market = hours.map((_, i) => {
                 let p = 12;
-                if (i >= 7 && i <= 10) p = 30; // AM Peak
-                if (i >= 17 && i <= 21) p = 50; // PM Peak
-                if (i >= 11 && i <= 15) p = 6;  // PV Overflow
-                return p + Math.random() * 4;
+                if (i >= 7 && i <= 10) p = 28;
+                if (i >= 18 && i <= 21) p = 45;
+                if (i >= 11 && i <= 15) p = 5;
+                return p + Math.random() * 2;
             });
 
             let soc = 50;
             const socData = [];
-            market.forEach(p => {
-                // Algorithm: Charge when cheap, discharge when expensive
-                if (p < 15) soc += (18 * eff * integ);
-                else if (p > 38) soc -= (22 / eff * integ);
+
+            hours.forEach((_, i) => {
+                const p_gen = genCurve[i];
+                const p_load = loadCurve[i];
+                const price = market[i];
+                const net = p_gen - p_load;
+                
+                let p_bat = 0;
+
+                if (net > 0) {
+                    p_bat = Math.min(net, 50);
+                } 
+                else if (net < 0 && price > 20) {
+                    p_bat = Math.max(net, -50);
+                }
+                else if (price < 10 && soc < 40) {
+                    p_bat = 30;
+                }
+
+                if (p_bat > 0) soc += (p_bat * eff * integ) / 10;
+                else soc += (p_bat / eff * integ) / 10;
+
                 soc = Math.max(5, Math.min(95, soc));
                 socData.push(soc.toFixed(1));
             });
@@ -322,16 +428,18 @@
                 data: {
                     labels: hours,
                     datasets: [
-                        { label: 'SoC (%)', data: socData, borderColor: '#0d9488', backgroundColor: 'rgba(13,148,136,0.1)', fill: true, tension: 0.4, yAxisID: 'y' },
-                        { label: 'Market Price', data: market, borderColor: '#cbd5e1', borderDash: [5,5], tension: 0.1, yAxisID: 'y1' }
+                        { label: 'SoC (%)', data: socData, borderColor: '#0d9488', backgroundColor: 'rgba(13,148,136,0.1)', fill: true, tension: 0.4, yAxisID: 'y', pointRadius: 0 },
+                        { label: 'Solar (kW)', data: genCurve, borderColor: '#fb923c', borderWidth: 1.5, tension: 0.4, yAxisID: 'y1', pointRadius: 0 },
+                        { label: 'Demand (kW)', data: loadCurve, borderColor: '#60a5fa', borderWidth: 1.5, tension: 0.4, yAxisID: 'y1', pointRadius: 0 },
+                        { label: 'Market (円)', data: market, borderColor: '#334155', borderWidth: 2, tension: 0.1, yAxisID: 'y1', pointRadius: 0 }
                     ]
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
                     scales: {
-                        y: { min: 0, max: 100, ticks: { font: { size: 10 } } },
-                        y1: { position: 'right', min: 0, max: 70, grid: { drawOnChartArea: false }, ticks: { font: { size: 10 } } }
+                        y: { min: 0, max: 100, ticks: { font: { size: 9 } }, title: { display: true, text: 'SoC (%)', font: { size: 10 } } },
+                        y1: { position: 'right', min: 0, max: 100, grid: { drawOnChartArea: false }, ticks: { font: { size: 9 } }, title: { display: true, text: 'Power (kW) / Price', font: { size: 10 } } }
                     },
                     plugins: { legend: { display: false } }
                 }
